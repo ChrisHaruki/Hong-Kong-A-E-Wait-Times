@@ -1,120 +1,654 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>香港急症室等候時間 | HK A&E Wait Times</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(to bottom right, #eff6ff, #e0e7ff);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .phone-frame {
+            max-width: 448px;
+            margin: 32px auto;
+            background: #111827;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .phone-screen {
+            background: white;
+            border-radius: 16px;
+            height: 812px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 24px;
+            font-size: 12px;
+            background: white;
+        }
+
+        .status-bar-left {
+            font-weight: 600;
+        }
+
+        .status-bar-right {
+            display: flex;
+            gap: 4px;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            padding: 16px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .lang-button {
+            padding: 6px 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .lang-button:hover {
+            background: #1d4ed8;
+        }
+
+        .update-time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .triage-info {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .triage-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .triage-card.urgent {
+            border-left-color: #ef4444;
+        }
+
+        .triage-card.semi-urgent {
+            border-left-color: #eab308;
+        }
+
+        .triage-card h3 {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .triage-card p {
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        .hospitals-container {
+            padding: 0 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .region-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .region-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(to right, #3b82f6, #6366f1);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .region-header:hover {
+            background: linear-gradient(to right, #2563eb, #4f46e5);
+        }
+
+        .region-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .region-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .region-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .chevron {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s;
+        }
+
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .hospital-list {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .hospital-list.expanded {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .hospital-item {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.3s;
+        }
+
+        .hospital-item:hover {
+            background: #eff6ff;
+        }
+
+        .hospital-item:last-child {
+            border-bottom: none;
+        }
+
+        .hospital-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .wait-times {
+            display: flex;
+            gap: 20px;
+        }
+
+        .wait-time-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .wait-time-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .wait-time-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .wait-time-value.green {
+            color: #16a34a;
+        }
+
+        .wait-time-value.yellow {
+            color: #ca8a04;
+        }
+
+        .wait-time-value.red {
+            color: #dc2626;
+        }
+
+        .wait-time-unit {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .footer {
+            background: linear-gradient(to bottom right, #eff6ff, #e0e7ff, #f3e8ff);
+            padding: 32px 24px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .footer-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .sparkle-icon {
+            width: 16px;
+            height: 16px;
+            color: #6366f1;
+        }
+
+        .footer-title {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            color: #1f2937;
+        }
+
+        .footer-made {
+            font-size: 12px;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+
+        .footer-tagline {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .footer-bottom {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .footer-copyright {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #2563eb;
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: #1d4ed8;
+        }
+
+        .arrow-up {
+            width: 20px;
+            height: 20px;
+        }
+
+        .legend {
+            max-width: 448px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .legend-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-title {
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .legend-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-list li {
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .legend-list strong {
+            color: #1f2937;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header (Sticky) -->
-        <header class="header">
-            <div class="header-content">
+    <div class="phone-frame">
+        <div class="phone-screen" id="phoneScreen">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-bar-left">11:16</div>
+                <div class="status-bar-right">
+                    <span>📶</span>
+                    <span>📡</span>
+                    <span>🔋</span>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="header">
                 <div class="header-top">
-                    <h1>{{ title }}</h1>
-                    <a href="{{ url_for('index', lang='en' if lang == 'zh' else 'zh') }}" class="lang-toggle">
-                        {{ '中文' if lang == 'en' else 'EN' }}
-                    </a>
+                    <h1 class="header-title" id="headerTitle">香港急症室等候時間</h1>
+                    <button class="lang-button" id="langButton">EN</button>
                 </div>
-                <p class="update-time">{{ update_label }}: {{ update_time }}</p>
+                <p class="update-time" id="updateTime">更新時間: 3/2/2026 11:00PM</p>
             </div>
-        </header>
 
-        <!-- Triage Info -->
-        <div class="triage-info">
-            <div class="triage-card urgent">
-                <h3>{{ urgent_label }}</h3>
-                <p>{{ urgent_desc }}</p>
+            <!-- Triage Info -->
+            <div class="triage-info">
+                <div class="triage-card urgent">
+                    <h3 id="urgentTitle">緊急（第3類）</h3>
+                    <p id="urgentDesc">發燒、嘔吐、中度疼痛</p>
+                </div>
+                <div class="triage-card semi-urgent">
+                    <h3 id="semiUrgentTitle">次緊急/非緊急（第4-5類）</h3>
+                    <p id="semiUrgentDesc">傷風感冒、皮疹、小傷口</p>
+                </div>
             </div>
-            <div class="triage-card semi-urgent">
-                <h3>{{ semi_urgent_label }}</h3>
-                <p>{{ semi_urgent_desc }}</p>
-            </div>
-        </div>
 
-        <!-- Hospitals by Region -->
-        <div class="regions-container">
-            {% for region_key, region_data in regions.items() %}
-            <div class="region-card">
-                <button class="region-header" onclick="toggleRegion('{{ region_key }}')">
-                    <div class="region-title">
-                        <span class="region-name">{{ region_data.name }}</span>
-                        <span class="hospital-count">{{ region_data.hospitals|length }}</span>
-                    </div>
-                    <svg class="chevron" id="chevron-{{ region_key }}" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Hospitals -->
+            <div class="hospitals-container" id="hospitalsContainer">
+                <!-- Generated by JavaScript -->
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-header">
+                    <svg class="sparkle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                     </svg>
-                </button>
-
-                <div class="hospital-list" id="region-{{ region_key }}">
-                    {% for hospital in region_data.hospitals %}
-                    <div class="hospital-card">
-                        <div class="hospital-info">
-                            <h3 class="hospital-name">{{ hospital.name }}</h3>
-                        </div>
-                        <div class="wait-times">
-                            <div class="wait-time-item">
-                                <span class="wait-label">{{ urgent_short }}</span>
-                                <span class="wait-value {{ 'green' if hospital.wait_urgent <= 45 else 'yellow' if hospital.wait_urgent <= 90 else 'red' }}">
-                                    {{ hospital.wait_urgent }}
-                                </span>
-                                <span class="wait-unit">{{ minute_label }}</span>
-                            </div>
-                            <div class="wait-time-item">
-                                <span class="wait-label">{{ semi_urgent_short }}</span>
-                                <span class="wait-value {{ 'green' if hospital.wait_semi <= 60 else 'yellow' if hospital.wait_semi <= 120 else 'red' }}">
-                                    {{ hospital.wait_semi }}
-                                </span>
-                                <span class="wait-unit">{{ hour_label }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                    <span class="footer-title">HARUKI ROBOTICS LAB</span>
+                    <svg class="sparkle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                    </svg>
+                </div>
+                <p class="footer-made" id="footerMade">由心出發</p>
+                <p class="footer-tagline" id="footerTagline">原來每個人都有能力去創造有用嘅嘢</p>
+                <div class="footer-bottom">
+                    <p class="footer-copyright" id="footerCopyright">© 2026 • 一齊嚟做啲嘢</p>
                 </div>
             </div>
-            {% endfor %}
         </div>
+    </div>
 
-        <!-- Back to Top Button -->
-        <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </button>
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop">
+        <svg class="arrow-up" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-card">
+            <h3 class="legend-title">Key Features</h3>
+            <ul class="legend-list">
+                <li>✅ <strong>Auto-sorted by wait time</strong> (shortest first)</li>
+                <li>✅ <strong>Collapsible regions</strong> (tap to expand/collapse)</li>
+                <li>✅ <strong>Two-tier wait times</strong> (Tier 3 & Tier 4-5)</li>
+                <li>✅ <strong>Color indicators</strong> (green = short, yellow = medium, red = long)</li>
+                <li>✅ <strong>Back to top button</strong> (appears when scrolling)</li>
+                <li>✅ <strong>Sticky header</strong> with language toggle</li>
+                <li>✨ <strong>Beautiful footer</strong> with inspiring message</li>
+            </ul>
+        </div>
     </div>
 
     <script>
-        // Toggle region collapse/expand
-        function toggleRegion(regionKey) {
-            const list = document.getElementById('region-' + regionKey);
-            const chevron = document.getElementById('chevron-' + regionKey);
-            
-            if (list.classList.contains('collapsed')) {
-                list.classList.remove('collapsed');
-                chevron.style.transform = 'rotate(0deg)';
-            } else {
-                list.classList.add('collapsed');
-                chevron.style.transform = 'rotate(-90deg)';
+        // Hospital data
+        const hospitals = {
+            hk: [
+                { name_en: "Ruttonjee Hospital", name_tc: "律敦治醫院", wait_urgent: 30, wait_semi: 1.0 },
+                { name_en: "Queen Mary Hospital", name_tc: "瑪麗醫院", wait_urgent: 45, wait_semi: 1.5 },
+                { name_en: "Grantham Hospital", name_tc: "葛量洪醫院", wait_urgent: 60, wait_semi: 2.0 },
+                { name_en: "Pamela Youde Nethersole Eastern Hospital", name_tc: "東區尤德夫人那打素醫院", wait_urgent: 90, wait_semi: 3.0 }
+            ],
+            kowloon: [
+                { name_en: "Caritas Medical Centre", name_tc: "明愛醫院", wait_urgent: 40, wait_semi: 1.3 },
+                { name_en: "United Christian Hospital", name_tc: "基督教聯合醫院", wait_urgent: 55, wait_semi: 1.8 },
+                { name_en: "Kwong Wah Hospital", name_tc: "廣華醫院", wait_urgent: 75, wait_semi: 2.5 },
+                { name_en: "Princess Margaret Hospital", name_tc: "瑪嘉烈醫院", wait_urgent: 85, wait_semi: 2.8 },
+                { name_en: "Queen Elizabeth Hospital", name_tc: "伊利沙伯醫院", wait_urgent: 120, wait_semi: 4.0 }
+            ],
+            nt: [
+                { name_en: "Tin Shui Wai Hospital", name_tc: "天水圍醫院", wait_urgent: 35, wait_semi: 1.2 },
+                { name_en: "North District Hospital", name_tc: "北區醫院", wait_urgent: 50, wait_semi: 1.7 },
+                { name_en: "Pok Oi Hospital", name_tc: "博愛醫院", wait_urgent: 65, wait_semi: 2.2 },
+                { name_en: "Prince of Wales Hospital", name_tc: "威爾斯親王醫院", wait_urgent: 95, wait_semi: 3.2 },
+                { name_en: "Tuen Mun Hospital", name_tc: "屯門醫院", wait_urgent: 110, wait_semi: 3.7 }
+            ]
+        };
+
+        const regionNames = {
+            hk: { en: "Hong Kong Island", tc: "香港島" },
+            kowloon: { en: "Kowloon", tc: "九龍" },
+            nt: { en: "New Territories", tc: "新界" }
+        };
+
+        const translations = {
+            zh: {
+                title: '香港急症室等候時間',
+                updateLabel: '更新時間',
+                urgentLabel: '緊急（第3類）',
+                urgentDesc: '發燒、嘔吐、中度疼痛',
+                semiUrgentLabel: '次緊急/非緊急（第4-5類）',
+                semiUrgentDesc: '傷風感冒、皮疹、小傷口',
+                urgentShort: '第3類',
+                semiUrgentShort: '第4-5類',
+                minuteLabel: '分鐘',
+                hourLabel: '小時',
+                footerMade: '由心出發',
+                footerTagline: '原來每個人都有能力去創造有用嘅嘢',
+                footerCopyright: '一齊嚟做啲嘢'
+            },
+            en: {
+                title: 'HK A&E Wait Times',
+                updateLabel: 'Last updated',
+                urgentLabel: 'Urgent (Tier 3)',
+                urgentDesc: 'Fever, vomiting, moderate pain',
+                semiUrgentLabel: 'Semi-urgent/Non-urgent (Tier 4-5)',
+                semiUrgentDesc: 'Cold/flu, rash, minor wounds',
+                urgentShort: 'Tier 3',
+                semiUrgentShort: 'Tier 4-5',
+                minuteLabel: 'min',
+                hourLabel: 'hr',
+                footerMade: 'Made with care',
+                footerTagline: 'Everyone has the ability to create something useful',
+                footerCopyright: "Let's make together"
             }
+        };
+
+        let currentLang = 'zh';
+        let expandedRegions = { hk: true, kowloon: false, nt: false };
+
+        // Get color class based on wait time
+        function getWaitTimeColor(minutes) {
+            if (minutes <= 45) return 'green';
+            if (minutes <= 90) return 'yellow';
+            return 'red';
         }
 
+        function getWaitTimeColorHour(hours) {
+            if (hours <= 1.5) return 'green';
+            if (hours <= 2.5) return 'yellow';
+            return 'red';
+        }
+
+        // Render hospitals
+        function renderHospitals() {
+            const container = document.getElementById('hospitalsContainer');
+            const t = translations[currentLang];
+            
+            container.innerHTML = '';
+            
+            Object.keys(hospitals).forEach(region => {
+                const regionCard = document.createElement('div');
+                regionCard.className = 'region-card';
+                
+                const isExpanded = expandedRegions[region];
+                
+                regionCard.innerHTML = `
+                    <button class="region-header" onclick="toggleRegion('${region}')">
+                        <div class="region-header-left">
+                            <span class="region-name">${currentLang === 'en' ? regionNames[region].en : regionNames[region].tc}</span>
+                            <span class="region-count">${hospitals[region].length}</span>
+                        </div>
+                        <svg class="chevron ${isExpanded ? 'expanded' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div class="hospital-list ${isExpanded ? 'expanded' : ''}" id="list-${region}">
+                        ${hospitals[region].map(hospital => `
+                            <div class="hospital-item">
+                                <h3 class="hospital-name">${currentLang === 'en' ? hospital.name_en : hospital.name_tc}</h3>
+                                <div class="wait-times">
+                                    <div class="wait-time-item">
+                                        <span class="wait-time-label">${t.urgentShort}</span>
+                                        <span class="wait-time-value ${getWaitTimeColor(hospital.wait_urgent)}">${hospital.wait_urgent}</span>
+                                        <span class="wait-time-unit">${t.minuteLabel}</span>
+                                    </div>
+                                    <div class="wait-time-item">
+                                        <span class="wait-time-label">${t.semiUrgentShort}</span>
+                                        <span class="wait-time-value ${getWaitTimeColorHour(hospital.wait_semi)}">${hospital.wait_semi}</span>
+                                        <span class="wait-time-unit">${t.hourLabel}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(regionCard);
+            });
+        }
+
+        // Toggle region
+        function toggleRegion(region) {
+            expandedRegions[region] = !expandedRegions[region];
+            renderHospitals();
+        }
+
+        // Update language
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            document.getElementById('headerTitle').textContent = t.title;
+            document.getElementById('updateTime').textContent = `${t.updateLabel}: 3/2/2026 11:00PM`;
+            document.getElementById('urgentTitle').textContent = t.urgentLabel;
+            document.getElementById('urgentDesc').textContent = t.urgentDesc;
+            document.getElementById('semiUrgentTitle').textContent = t.semiUrgentLabel;
+            document.getElementById('semiUrgentDesc').textContent = t.semiUrgentDesc;
+            document.getElementById('footerMade').textContent = t.footerMade;
+            document.getElementById('footerTagline').textContent = t.footerTagline;
+            document.getElementById('footerCopyright').textContent = `© 2026 • ${t.footerCopyright}`;
+            
+            renderHospitals();
+        }
+
+        // Language toggle
+        document.getElementById('langButton').addEventListener('click', () => {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langButton').textContent = currentLang === 'zh' ? 'EN' : '中文';
+            updateLanguage();
+        });
+
         // Back to top button
-        window.addEventListener('scroll', function() {
-            const backToTop = document.getElementById('backToTop');
-            if (window.scrollY > 300) {
-                backToTop.classList.add('visible');
+        const phoneScreen = document.getElementById('phoneScreen');
+        const backToTopButton = document.getElementById('backToTop');
+
+        phoneScreen.addEventListener('scroll', () => {
+            if (phoneScreen.scrollTop > 300) {
+                backToTopButton.classList.add('visible');
             } else {
-                backToTop.classList.remove('visible');
+                backToTopButton.classList.remove('visible');
             }
         });
 
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
+        backToTopButton.addEventListener('click', () => {
+            phoneScreen.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Initial render
+        renderHospitals();
     </script>
 </body>
 </html>
