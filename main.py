@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, render_template, request
 import requests
 from datetime import datetime
 
@@ -64,246 +64,55 @@ def index():
         hospitals = []
         update_time = "Error loading data"
     
-    # Sort by Category 3 median wait time (most relevant for parents)
+    # Process hospital data
     for h in hospitals:
         h["t3_minutes"] = parse_time_to_minutes(h.get("t3p50", "0"))
         h["t45_minutes"] = parse_time_to_minutes(h.get("t45p50", "0"))
+        h["t3_color"] = get_wait_color(h["t3_minutes"])
+        h["t45_color"] = get_wait_color(h["t45_minutes"])
+        
+        # Add display names
+        name_en = h.get("hospName", "Unknown")
+        h["name_tc"] = HOSPITAL_NAMES_TC.get(name_en, name_en)
+        h["name_en"] = name_en
     
     hospitals.sort(key=lambda x: x["t3_minutes"])
     
     # Translations
-    if lang == "en":
-        title = "Hong Kong A&E Wait Times"
-        updated = "Updated"
-        cat3_label = "Urgent (Cat 3)"
-        cat3_desc = "Fever, vomiting, moderate pain"
-        cat45_label = "Minor (Cat 4-5)"
-        cat45_desc = "Colds, rashes, small cuts"
-        median_label = "Median"
-        p95_label = "95% wait"
-        footer = "Live data from Hospital Authority. Category 3 most common for sick kids."
-    else:
-        title = "香港急症室等候時間"
-        updated = "更新時間"
-        cat3_label = "緊急 (第3類)"
-        cat3_desc = "發燒、嘔吐、中度疼痛"
-        cat45_label = "次緊急/非緊急 (第4-5類)"
-        cat45_desc = "傷風感冒、皮疹、小傷口"
-        median_label = "中位數"
-        p95_label = "95%等候"
-        footer = "醫管局實時數據。第3類最常見於生病小朋友。"
-
-    html = f"""
-    <!DOCTYPE html>
-    <html lang="{'en' if lang == 'en' else 'zh-Hant'}">
-    <head>
-        <meta charset="utf-8">
-        <title>{title}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta http-equiv="refresh" content="60">
-        <style>
-            * {{
-                box-sizing: border-box;
-            }}
-            body {{
-                font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-                background: #f8f9fa;
-                color: #111;
-                margin: 0;
-                padding: 1em;
-                line-height: 1.6;
-            }}
-            .container {{
-                max-width: 900px;
-                margin: 0 auto;
-                background: white;
-                padding: 1.5em;
-                border-radius: 12px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }}
-            .header {{
-                text-align: center;
-                margin-bottom: 1.5em;
-            }}
-            .lang-switch {{
-                text-align: right;
-                margin-bottom: 0.5em;
-                font-size: 0.9rem;
-            }}
-            .lang-switch a {{
-                color: #666;
-                text-decoration: none;
-                padding: 0.3em 0.6em;
-                border-radius: 4px;
-                transition: all 0.2s;
-            }}
-            .lang-switch a:hover {{
-                background: #f0f0f0;
-            }}
-            .lang-switch a.active {{
-                color: #dc2626;
-                font-weight: bold;
-            }}
-            h1 {{
-                font-size: 1.8rem;
-                margin: 0.3em 0;
-                color: #dc2626;
-            }}
-            .update-time {{
-                color: #666;
-                font-size: 0.9rem;
-            }}
-            .legend {{
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1em;
-                margin: 1.5em 0;
-                padding: 1em;
-                background: #f8f9fa;
-                border-radius: 8px;
-            }}
-            .legend-item {{
-                font-size: 0.9rem;
-            }}
-            .legend-title {{
-                font-weight: bold;
-                color: #dc2626;
-                margin-bottom: 0.2em;
-            }}
-            .legend-desc {{
-                color: #666;
-                font-size: 0.85rem;
-            }}
-            .hospital-card {{
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                padding: 1em;
-                margin-bottom: 1em;
-                transition: all 0.2s;
-            }}
-            .hospital-card:hover {{
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                transform: translateY(-2px);
-            }}
-            .hospital-name {{
-                font-size: 1.2rem;
-                font-weight: bold;
-                margin-bottom: 0.5em;
-                color: #111;
-            }}
-            .wait-times {{
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1em;
-            }}
-            .wait-box {{
-                padding: 0.8em;
-                border-radius: 6px;
-                background: #f8f9fa;
-            }}
-            .wait-label {{
-                font-size: 0.85rem;
-                color: #666;
-                margin-bottom: 0.3em;
-            }}
-            .wait-value {{
-                font-size: 1.3rem;
-                font-weight: bold;
-                margin-bottom: 0.2em;
-            }}
-            .wait-p95 {{
-                font-size: 0.85rem;
-                color: #666;
-            }}
-            .footer {{
-                text-align: center;
-                margin-top: 2em;
-                padding-top: 1em;
-                border-top: 1px solid #e5e7eb;
-                color: #666;
-                font-size: 0.9rem;
-            }}
-            @media (max-width: 600px) {{
-                .legend {{
-                    grid-template-columns: 1fr;
-                }}
-                .wait-times {{
-                    grid-template-columns: 1fr;
-                }}
-                h1 {{
-                    font-size: 1.5rem;
-                }}
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="lang-switch">
-                <a href="?lang=zh" class="{'active' if lang == 'zh' else ''}">中文</a>
-                <span style="color: #ddd;">|</span>
-                <a href="?lang=en" class="{'active' if lang == 'en' else ''}">EN</a>
-            </div>
-            
-            <div class="header">
-                <h1>{title}</h1>
-                <div class="update-time">{updated}: {update_time}</div>
-            </div>
-            
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-title">{cat3_label}</div>
-                    <div class="legend-desc">{cat3_desc}</div>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-title">{cat45_label}</div>
-                    <div class="legend-desc">{cat45_desc}</div>
-                </div>
-            </div>
-    """
+    translations = {
+        "en": {
+            "title": "Hong Kong A&E Wait Times",
+            "updated": "Updated",
+            "cat3_label": "Urgent (Cat 3)",
+            "cat3_desc": "Fever, vomiting, moderate pain",
+            "cat45_label": "Minor (Cat 4-5)",
+            "cat45_desc": "Colds, rashes, small cuts",
+            "median_label": "Median",
+            "p95_label": "95% wait",
+            "footer": "Live data from Hospital Authority. Category 3 most common for sick kids."
+        },
+        "zh": {
+            "title": "香港急症室等候時間",
+            "updated": "更新時間",
+            "cat3_label": "緊急 (第3類)",
+            "cat3_desc": "發燒、嘔吐、中度疼痛",
+            "cat45_label": "次緊急/非緊急 (第4-5類)",
+            "cat45_desc": "傷風感冒、皮疹、小傷口",
+            "median_label": "中位數",
+            "p95_label": "95%等候",
+            "footer": "醫管局實時數據。第3類最常見於生病小朋友。"
+        }
+    }
     
-    for h in hospitals:
-        name_en = h.get("hospName", "Unknown")
-        name_tc = HOSPITAL_NAMES_TC.get(name_en, name_en)
-        
-        t3p50 = h.get("t3p50", "N/A")
-        t3p95 = h.get("t3p95", "N/A")
-        t45p50 = h.get("t45p50", "N/A")
-        t45p95 = h.get("t45p95", "N/A")
-        
-        t3_color = get_wait_color(h["t3_minutes"])
-        t45_color = get_wait_color(h["t45_minutes"])
-        
-        display_name = name_tc if lang == "zh" else name_en
-        
-        html += f"""
-            <div class="hospital-card">
-                <div class="hospital-name">{display_name}</div>
-                <div class="wait-times">
-                    <div class="wait-box">
-                        <div class="wait-label">{cat3_label}</div>
-                        <div class="wait-value" style="color: {t3_color};">{t3p50}</div>
-                        <div class="wait-p95">{p95_label}: {t3p95}</div>
-                    </div>
-                    <div class="wait-box">
-                        <div class="wait-label">{cat45_label}</div>
-                        <div class="wait-value" style="color: {t45_color};">{t45p50}</div>
-                        <div class="wait-p95">{p95_label}: {t45p95}</div>
-                    </div>
-                </div>
-            </div>
-        """
+    t = translations[lang]
     
-    html += f"""
-            <div class="footer">
-                <p>{footer}</p>
-                <small>data.gov.hk - Hospital Authority<br>Haruki Robotics Lab</small>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    return html
+    return render_template(
+        "index.html",
+        lang=lang,
+        hospitals=hospitals,
+        update_time=update_time,
+        **t
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
