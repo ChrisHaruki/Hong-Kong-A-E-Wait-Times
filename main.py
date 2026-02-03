@@ -1,118 +1,115 @@
 from flask import Flask, render_template, request
-import requests
 from datetime import datetime
 
 app = Flask(__name__)
 
-HOSPITAL_NAMES_TC = {
-    "Alice Ho Miu Ling Nethersole Hospital": "雅麗氏何妙齡那打素醫院",
-    "Caritas Medical Centre": "明愛醫院",
-    "Kwong Wah Hospital": "廣華醫院",
-    "North District Hospital": "北區醫院",
-    "North Lantau Hospital": "北大嶼山醫院",
-    "Pamela Youde Nethersole Eastern Hospital": "東區尤德夫人那打素醫院",
-    "Pok Oi Hospital": "博愛醫院",
-    "Prince of Wales Hospital": "威爾斯親王醫院",
-    "Princess Margaret Hospital": "瑪嘉烈醫院",
-    "Queen Elizabeth Hospital": "伊利沙伯醫院",
-    "Queen Mary Hospital": "瑪麗醫院",
-    "Ruttonjee Hospital": "律敦治醫院",
-    "St John Hospital": "聖約翰醫院",
-    "Tin Shui Wai Hospital": "天水圍醫院",
-    "Tseung Kwan O Hospital": "將軍澳醫院",
-    "Tuen Mun Hospital": "屯門醫院",
-    "United Christian Hospital": "基督教聯合醫院",
-    "Yan Chai Hospital": "仁濟醫院"
+# Sample hospital data with two-tier wait times
+hospitals_data = {
+    'hk': [
+        {'name_en': 'Queen Mary Hospital', 'name_tc': '瑪麗醫院', 'wait_urgent': 45, 'wait_semi': 1.5},
+        {'name_en': 'Pamela Youde Nethersole Eastern Hospital', 'name_tc': '東區尤德夫人那打素醫院', 'wait_urgent': 90, 'wait_semi': 3.0},
+        {'name_en': 'Ruttonjee Hospital', 'name_tc': '律敦治醫院', 'wait_urgent': 30, 'wait_semi': 1.0},
+        {'name_en': 'Grantham Hospital', 'name_tc': '葛量洪醫院', 'wait_urgent': 60, 'wait_semi': 2.0}
+    ],
+    'kowloon': [
+        {'name_en': 'Queen Elizabeth Hospital', 'name_tc': '伊利沙伯醫院', 'wait_urgent': 120, 'wait_semi': 4.0},
+        {'name_en': 'Kwong Wah Hospital', 'name_tc': '廣華醫院', 'wait_urgent': 75, 'wait_semi': 2.5},
+        {'name_en': 'United Christian Hospital', 'name_tc': '基督教聯合醫院', 'wait_urgent': 55, 'wait_semi': 1.8},
+        {'name_en': 'Caritas Medical Centre', 'name_tc': '明愛醫院', 'wait_urgent': 40, 'wait_semi': 1.3},
+        {'name_en': 'Princess Margaret Hospital', 'name_tc': '瑪嘉烈醫院', 'wait_urgent': 85, 'wait_semi': 2.8}
+    ],
+    'nt': [
+        {'name_en': 'Prince of Wales Hospital', 'name_tc': '威爾斯親王醫院', 'wait_urgent': 95, 'wait_semi': 3.2},
+        {'name_en': 'North District Hospital', 'name_tc': '北區醫院', 'wait_urgent': 50, 'wait_semi': 1.7},
+        {'name_en': 'Tuen Mun Hospital', 'name_tc': '屯門醫院', 'wait_urgent': 110, 'wait_semi': 3.7},
+        {'name_en': 'Pok Oi Hospital', 'name_tc': '博愛醫院', 'wait_urgent': 65, 'wait_semi': 2.2},
+        {'name_en': 'Tin Shui Wai Hospital', 'name_tc': '天水圍醫院', 'wait_urgent': 35, 'wait_semi': 1.2}
+    ]
 }
 
-def parse_time_to_minutes(time_str):
-    """Convert time string to minutes for sorting"""
-    if not time_str or time_str == "0 minute" or time_str == "0 hour":
-        return 0
-    time_str = time_str.lower().replace("less than ", "")
-    if "hour" in time_str:
-        parts = time_str.replace("hours", "").replace("hour", "").strip().split()
-        hours = float(parts[0])
-        return int(hours * 60)
-    elif "minute" in time_str:
-        parts = time_str.replace("minutes", "").replace("minute", "").strip().split()
-        return int(parts[0])
-    return 0
+def sort_hospitals_by_wait(hospitals):
+    """Sort hospitals by urgent wait time (Tier 3)"""
+    return sorted(hospitals, key=lambda h: h['wait_urgent'])
 
-def get_wait_color(minutes):
-    """Return color based on wait time"""
-    if minutes <= 20:
-        return "#22c55e"  # green
-    elif minutes <= 40:
-        return "#eab308"  # yellow
-    elif minutes <= 60:
-        return "#f97316"  # orange
-    else:
-        return "#ef4444"  # red
-
-@app.route("/")
+@app.route('/')
 def index():
-    lang = request.args.get("lang", "zh")
-    
-    # Fetch live data
-    try:
-        r = requests.get("https://www.ha.org.hk/opendata/aed/aedwtdata2-en.json", timeout=10)
-        data = r.json()
-        hospitals = data.get("waitTime", [])
-        update_time = data.get("updateTime", "N/A")
-    except:
-        hospitals = []
-        update_time = "Error loading data"
-    
-    # Process hospital data
-    for h in hospitals:
-        h["t3_minutes"] = parse_time_to_minutes(h.get("t3p50", "0"))
-        h["t45_minutes"] = parse_time_to_minutes(h.get("t45p50", "0"))
-        h["t3_color"] = get_wait_color(h["t3_minutes"])
-        h["t45_color"] = get_wait_color(h["t45_minutes"])
-        
-        # Add display names
-        name_en = h.get("hospName", "Unknown")
-        h["name_tc"] = HOSPITAL_NAMES_TC.get(name_en, name_en)
-        h["name_en"] = name_en
-    
-    hospitals.sort(key=lambda x: x["t3_minutes"])
+    lang = request.args.get('lang', 'zh')
     
     # Translations
     translations = {
-        "en": {
-            "title": "Hong Kong A&E Wait Times",
-            "updated": "Updated",
-            "cat3_label": "Urgent (Cat 3)",
-            "cat3_desc": "Fever, vomiting, moderate pain",
-            "cat45_label": "Minor (Cat 4-5)",
-            "cat45_desc": "Colds, rashes, small cuts",
-            "median_label": "Median",
-            "p95_label": "95% wait",
-            "footer": "Live data from Hospital Authority. Category 3 most common for sick kids."
+        'zh': {
+            'title': '香港急症室等候時間',
+            'update_label': '更新時間',
+            'urgent_label': '緊急（第3類）',
+            'urgent_desc': '發燒、嘔吐、中度疼痛',
+            'semi_urgent_label': '次緊急/非緊急（第4-5類）',
+            'semi_urgent_desc': '傷風感冒、皮疹、小傷口',
+            'urgent_short': '第3類',
+            'semi_urgent_short': '第4-5類',
+            'minute_label': '分鐘',
+            'hour_label': '小時',
+            'regions': {
+                'hk': '香港島',
+                'kowloon': '九龍',
+                'nt': '新界'
+            }
         },
-        "zh": {
-            "title": "香港急症室等候時間",
-            "updated": "更新時間",
-            "cat3_label": "緊急 (第3類)",
-            "cat3_desc": "發燒、嘔吐、中度疼痛",
-            "cat45_label": "次緊急/非緊急 (第4-5類)",
-            "cat45_desc": "傷風感冒、皮疹、小傷口",
-            "median_label": "中位數",
-            "p95_label": "95%等候",
-            "footer": "醫管局實時數據。第3類最常見於生病小朋友。"
+        'en': {
+            'title': 'HK A&E Wait Times',
+            'update_label': 'Last updated',
+            'urgent_label': 'Urgent (Tier 3)',
+            'urgent_desc': 'Fever, vomiting, moderate pain',
+            'semi_urgent_label': 'Semi-urgent/Non-urgent (Tier 4-5)',
+            'semi_urgent_desc': 'Cold/flu, rash, minor wounds',
+            'urgent_short': 'Tier 3',
+            'semi_urgent_short': 'Tier 4-5',
+            'minute_label': 'min',
+            'hour_label': 'hr',
+            'regions': {
+                'hk': 'Hong Kong Island',
+                'kowloon': 'Kowloon',
+                'nt': 'New Territories'
+            }
         }
     }
     
-    t = translations[lang]
+    t = translations.get(lang, translations['zh'])
+    
+    # Prepare regions data with sorted hospitals
+    regions = {}
+    for region_key, hospitals in hospitals_data.items():
+        sorted_hospitals = sort_hospitals_by_wait(hospitals)
+        regions[region_key] = {
+            'name': t['regions'][region_key],
+            'hospitals': [
+                {
+                    'name': h[f'name_{lang}' if lang == 'en' else 'name_tc'],
+                    'wait_urgent': h['wait_urgent'],
+                    'wait_semi': h['wait_semi']
+                }
+                for h in sorted_hospitals
+            ]
+        }
+    
+    # Update time
+    update_time = datetime.now().strftime('%-d/%-m/%Y %-I:%M%p' if lang == 'en' else '%-d/%-m/%Y %p%-I:%M')
     
     return render_template(
-        "index.html",
+        'index.html',
         lang=lang,
-        hospitals=hospitals,
+        title=t['title'],
+        update_label=t['update_label'],
         update_time=update_time,
-        **t
+        urgent_label=t['urgent_label'],
+        urgent_desc=t['urgent_desc'],
+        semi_urgent_label=t['semi_urgent_label'],
+        semi_urgent_desc=t['semi_urgent_desc'],
+        urgent_short=t['urgent_short'],
+        semi_urgent_short=t['semi_urgent_short'],
+        minute_label=t['minute_label'],
+        hour_label=t['hour_label'],
+        regions=regions
     )
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
