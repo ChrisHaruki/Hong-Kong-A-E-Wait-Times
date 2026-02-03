@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-Hant' }}">
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="60">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switch">
+            <a href="?lang=zh" class="{{ 'active' if lang == 'zh' else '' }}">中文</a>
+            <span style="color: #ddd;">|</span>
+            <a href="?lang=en" class="{{ 'active' if lang == 'en' else '' }}">EN</a>
+        </div>
+        
+        <div class="header">
+            <h1>{{ title }}</h1>
+            <div class="update-time">{{ updated }}: {{ update_time }}</div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-title">{{ cat3_label }}</div>
+                <div class="legend-desc">{{ cat3_desc }}</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-title">{{ cat45_label }}</div>
+                <div class="legend-desc">{{ cat45_desc }}</div>
+            </div>
+        </div>
+
+        {% for h in hospitals %}
+        <div class="hospital-card">
+            <div class="hospital-name">
+                {{ h.name_tc if lang == 'zh' else h.name_en }}
+            </div>
+            <div class="wait-times">
+                <div class="wait-box">
+                    <div class="wait-label">{{ cat3_label }}</div>
+                    <div class="wait-value" style="color: {{ h.t3_color }};">
+                        {{ h.t3p50 or 'N/A' }}
+                    </div>
+                    <div class="wait-p95">{{ p95_label }}: {{ h.t3p95 or 'N/A' }}</div>
+                </div>
+                <div class="wait-box">
+                    <div class="wait-label">{{ cat45_label }}</div>
+                    <div class="wait-value" style="color: {{ h.t45_color }};">
+                        {{ h.t45p50 or 'N/A' }}
+                    </div>
+                    <div class="wait-p95">{{ p95_label }}: {{ h.t45p95 or 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="footer">
+            <p>{{ footer }}</p>
+            <small>data.gov.hk - Hospital Authority<br>Haruki Robotics Lab</small>
+        </div>
+    </div>
+</body>
+</html>
