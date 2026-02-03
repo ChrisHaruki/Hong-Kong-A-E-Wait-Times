@@ -1,64 +1,120 @@
 <!DOCTYPE html>
-<html lang="{{ 'en' if lang == 'en' else 'zh-Hant' }}">
+<html lang="{{ lang }}">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="60">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <div class="lang-switch">
-            <a href="?lang=zh" class="{{ 'active' if lang == 'zh' else '' }}">中文</a>
-            <span style="color: #ddd;">|</span>
-            <a href="?lang=en" class="{{ 'active' if lang == 'en' else '' }}">EN</a>
-        </div>
-        
-        <div class="header">
-            <h1>{{ title }}</h1>
-            <div class="update-time">{{ updated }}: {{ update_time }}</div>
-        </div>
-        
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-title">{{ cat3_label }}</div>
-                <div class="legend-desc">{{ cat3_desc }}</div>
+        <!-- Header (Sticky) -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-top">
+                    <h1>{{ title }}</h1>
+                    <a href="{{ url_for('index', lang='en' if lang == 'zh' else 'zh') }}" class="lang-toggle">
+                        {{ '中文' if lang == 'en' else 'EN' }}
+                    </a>
+                </div>
+                <p class="update-time">{{ update_label }}: {{ update_time }}</p>
             </div>
-            <div class="legend-item">
-                <div class="legend-title">{{ cat45_label }}</div>
-                <div class="legend-desc">{{ cat45_desc }}</div>
+        </header>
+
+        <!-- Triage Info -->
+        <div class="triage-info">
+            <div class="triage-card urgent">
+                <h3>{{ urgent_label }}</h3>
+                <p>{{ urgent_desc }}</p>
+            </div>
+            <div class="triage-card semi-urgent">
+                <h3>{{ semi_urgent_label }}</h3>
+                <p>{{ semi_urgent_desc }}</p>
             </div>
         </div>
 
-        {% for h in hospitals %}
-        <div class="hospital-card">
-            <div class="hospital-name">
-                {{ h.name_tc if lang == 'zh' else h.name_en }}
-            </div>
-            <div class="wait-times">
-                <div class="wait-box">
-                    <div class="wait-label">{{ cat3_label }}</div>
-                    <div class="wait-value" style="color: {{ h.t3_color }};">
-                        {{ h.t3p50 or 'N/A' }}
+        <!-- Hospitals by Region -->
+        <div class="regions-container">
+            {% for region_key, region_data in regions.items() %}
+            <div class="region-card">
+                <button class="region-header" onclick="toggleRegion('{{ region_key }}')">
+                    <div class="region-title">
+                        <span class="region-name">{{ region_data.name }}</span>
+                        <span class="hospital-count">{{ region_data.hospitals|length }}</span>
                     </div>
-                    <div class="wait-p95">{{ p95_label }}: {{ h.t3p95 or 'N/A' }}</div>
-                </div>
-                <div class="wait-box">
-                    <div class="wait-label">{{ cat45_label }}</div>
-                    <div class="wait-value" style="color: {{ h.t45_color }};">
-                        {{ h.t45p50 or 'N/A' }}
-                    </div>
-                    <div class="wait-p95">{{ p95_label }}: {{ h.t45p95 or 'N/A' }}</div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+                    <svg class="chevron" id="chevron-{{ region_key }}" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
 
-        <div class="footer">
-            <p>{{ footer }}</p>
-            <small>data.gov.hk - Hospital Authority<br>Haruki Robotics Lab</small>
+                <div class="hospital-list" id="region-{{ region_key }}">
+                    {% for hospital in region_data.hospitals %}
+                    <div class="hospital-card">
+                        <div class="hospital-info">
+                            <h3 class="hospital-name">{{ hospital.name }}</h3>
+                        </div>
+                        <div class="wait-times">
+                            <div class="wait-time-item">
+                                <span class="wait-label">{{ urgent_short }}</span>
+                                <span class="wait-value {{ 'green' if hospital.wait_urgent <= 45 else 'yellow' if hospital.wait_urgent <= 90 else 'red' }}">
+                                    {{ hospital.wait_urgent }}
+                                </span>
+                                <span class="wait-unit">{{ minute_label }}</span>
+                            </div>
+                            <div class="wait-time-item">
+                                <span class="wait-label">{{ semi_urgent_short }}</span>
+                                <span class="wait-value {{ 'green' if hospital.wait_semi <= 60 else 'yellow' if hospital.wait_semi <= 120 else 'red' }}">
+                                    {{ hospital.wait_semi }}
+                                </span>
+                                <span class="wait-unit">{{ hour_label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
+
+        <!-- Back to Top Button -->
+        <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 19V5M5 12L12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
     </div>
+
+    <script>
+        // Toggle region collapse/expand
+        function toggleRegion(regionKey) {
+            const list = document.getElementById('region-' + regionKey);
+            const chevron = document.getElementById('chevron-' + regionKey);
+            
+            if (list.classList.contains('collapsed')) {
+                list.classList.remove('collapsed');
+                chevron.style.transform = 'rotate(0deg)';
+            } else {
+                list.classList.add('collapsed');
+                chevron.style.transform = 'rotate(-90deg)';
+            }
+        }
+
+        // Back to top button
+        window.addEventListener('scroll', function() {
+            const backToTop = document.getElementById('backToTop');
+            if (window.scrollY > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    </script>
 </body>
 </html>
