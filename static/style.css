@@ -1,155 +1,300 @@
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-    background: #f8f9fa;
-    color: #111;
-    margin: 0;
-    padding: 1em;
-    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding-bottom: 40px;
 }
 
 .container {
-    max-width: 900px;
+    max-width: 800px;
     margin: 0 auto;
-    background: white;
-    padding: 1.5em;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 0 16px;
 }
 
+/* Header */
 .header {
-    text-align: center;
-    margin-bottom: 1.5em;
+    position: sticky;
+    top: 0;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    margin: 0 -16px;
+    padding: 16px 16px 12px;
+    margin-bottom: 16px;
 }
 
-.lang-switch {
-    text-align: right;
-    margin-bottom: 0.5em;
-    font-size: 0.9rem;
+.header-content {
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.lang-switch a {
-    color: #666;
-    text-decoration: none;
-    padding: 0.3em 0.6em;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.lang-switch a:hover {
-    background: #f0f0f0;
-}
-
-.lang-switch a.active {
-    color: #dc2626;
-    font-weight: bold;
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
 h1 {
-    font-size: 1.8rem;
-    margin: 0.3em 0;
-    color: #dc2626;
+    font-size: 24px;
+    color: #1a202c;
+    font-weight: 700;
+}
+
+.lang-toggle {
+    padding: 6px 16px;
+    background: #3b82f6;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.lang-toggle:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
 }
 
 .update-time {
-    color: #666;
-    font-size: 0.9rem;
+    font-size: 13px;
+    color: #6b7280;
 }
 
-.legend {
+/* Triage Info */
+.triage-info {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1em;
-    margin: 1.5em 0;
-    padding: 1em;
-    background: #f8f9fa;
-    border-radius: 8px;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
-.legend-item {
-    font-size: 0.9rem;
+.triage-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.legend-title {
-    font-weight: bold;
-    color: #dc2626;
-    margin-bottom: 0.2em;
+.triage-card.urgent {
+    border-left: 4px solid #ef4444;
 }
 
-.legend-desc {
-    color: #666;
-    font-size: 0.85rem;
+.triage-card.semi-urgent {
+    border-left: 4px solid #f59e0b;
+}
+
+.triage-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #1a202c;
+}
+
+.triage-card p {
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* Regions */
+.regions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.region-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+
+.region-header {
+    width: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.region-header:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+}
+
+.region-header:active {
+    transform: scale(0.98);
+}
+
+.region-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.region-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.hospital-count {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.chevron {
+    transition: transform 0.3s;
+}
+
+/* Hospital List */
+.hospital-list {
+    max-height: 3000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, opacity 0.3s;
+    opacity: 1;
+}
+
+.hospital-list.collapsed {
+    max-height: 0;
+    opacity: 0;
 }
 
 .hospital-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1em;
-    margin-bottom: 1em;
-    transition: all 0.2s;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
+}
+
+.hospital-card:last-child {
+    border-bottom: none;
 }
 
 .hospital-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
+    background: #f9fafb;
 }
 
 .hospital-name {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-bottom: 0.5em;
-    color: #111;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 12px;
+    line-height: 1.4;
 }
 
 .wait-times {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1em;
+    display: flex;
+    gap: 20px;
 }
 
-.wait-box {
-    padding: 0.8em;
-    border-radius: 6px;
-    background: #f8f9fa;
+.wait-time-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .wait-label {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 0.3em;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
 }
 
 .wait-value {
-    font-size: 1.3rem;
-    font-weight: bold;
-    margin-bottom: 0.2em;
+    font-size: 24px;
+    font-weight: 700;
 }
 
-.wait-p95 {
-    font-size: 0.85rem;
-    color: #666;
+.wait-value.green {
+    color: #10b981;
 }
 
-.footer {
-    text-align: center;
-    margin-top: 2em;
-    padding-top: 1em;
-    border-top: 1px solid #e5e7eb;
-    color: #666;
-    font-size: 0.9rem;
+.wait-value.yellow {
+    color: #f59e0b;
 }
 
-@media (max-width: 600px) {
-    .legend {
-        grid-template-columns: 1fr;
-    }
-    .wait-times {
-        grid-template-columns: 1fr;
-    }
+.wait-value.red {
+    color: #ef4444;
+}
+
+.wait-unit {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* Back to Top Button */
+.back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: all 0.3s;
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.back-to-top:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+}
+
+.back-to-top:active {
+    transform: translateY(0);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
     h1 {
-        font-size: 1.5rem;
+        font-size: 20px;
+    }
+
+    .region-name {
+        font-size: 16px;
+    }
+
+    .hospital-name {
+        font-size: 15px;
+    }
+
+    .wait-value {
+        font-size: 20px;
+    }
+
+    .back-to-top {
+        width: 48px;
+        height: 48px;
+        bottom: 20px;
+        right: 20px;
     }
 }
