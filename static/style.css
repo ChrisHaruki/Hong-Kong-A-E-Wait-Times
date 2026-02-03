@@ -1,0 +1,155 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #f8f9fa;
+    color: #111;
+    margin: 0;
+    padding: 1em;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 1.5em;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 1.5em;
+}
+
+.lang-switch {
+    text-align: right;
+    margin-bottom: 0.5em;
+    font-size: 0.9rem;
+}
+
+.lang-switch a {
+    color: #666;
+    text-decoration: none;
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.lang-switch a:hover {
+    background: #f0f0f0;
+}
+
+.lang-switch a.active {
+    color: #dc2626;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 1.8rem;
+    margin: 0.3em 0;
+    color: #dc2626;
+}
+
+.update-time {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+    margin: 1.5em 0;
+    padding: 1em;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.legend-item {
+    font-size: 0.9rem;
+}
+
+.legend-title {
+    font-weight: bold;
+    color: #dc2626;
+    margin-bottom: 0.2em;
+}
+
+.legend-desc {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.hospital-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1em;
+    margin-bottom: 1em;
+    transition: all 0.2s;
+}
+
+.hospital-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.hospital-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+    color: #111;
+}
+
+.wait-times {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+}
+
+.wait-box {
+    padding: 0.8em;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.wait-label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.3em;
+}
+
+.wait-value {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.2em;
+}
+
+.wait-p95 {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid #e5e7eb;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .legend {
+        grid-template-columns: 1fr;
+    }
+    .wait-times {
+        grid-template-columns: 1fr;
+    }
+    h1 {
+        font-size: 1.5rem;
+    }
+}
